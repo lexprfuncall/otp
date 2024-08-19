@@ -66,6 +66,7 @@ MODULES= \
 	estone_SUITE \
 	erl_link_SUITE \
 	erl_drv_thread_SUITE \
+	erl_hdump_SUITE \
 	evil_SUITE \
 	exception_SUITE \
 	float_SUITE \

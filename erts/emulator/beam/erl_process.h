@@ -1168,6 +1168,8 @@ struct process {
 #ifdef DEBUG
     Uint debug_reds_in;
 #endif
+
+    void *hdump;
 };
 
 extern Eterm erts_init_process_id; /* pid of init process */
@@ -1625,6 +1627,7 @@ extern int erts_system_profile_ts_type;
 #define F_DBG_FORCED_TRAP    (1 << 24) /* DEBUG: Last BIF call was a forced trap */
 #define F_DIRTY_CHECK_CLA    (1 << 25) /* Check if copy literal area GC scheduled */
 #define F_ASYNC_DIST         (1 << 26) /* Truly asynchronous distribution */
+#define F_HDUMP_ON_EXIT      (1 << 27) /* Finish a delayed heap dump on process exit */
 
 /* Signal queue flags */
 #define FS_OFF_HEAP_MSGQ       (1 << 0) /* Off heap msg queue */

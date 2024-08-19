@@ -504,7 +504,7 @@ typedef unsigned char byte;
 #endif
 
 #if defined(ARCH_64) && !HAVE_INT64
-#error 64-bit architecture, but no appropriate type to use for Uint64 and Sint64 found 
+#error 64-bit architecture, but no appropriate type to use for Uint64 and Sint64 found
 #endif
 
 #ifdef WORDS_BIGENDIAN
@@ -577,7 +577,7 @@ extern erts_tsd_key_t erts_is_crash_dumping_key;
 #  define NO_ATANH
 #  define NO_FTRUNCATE
 #  define SIG_SIGHOLD
-#  define _POSIX_SOURCE 
+#  define _POSIX_SOURCE
 #  define _XOPEN_SOURCE
 #endif
 
@@ -673,6 +673,7 @@ typedef struct {
 } erts_print_sn_buf;
 
 int erts_print(fmtfn_t to, void *arg, char *format, ...);	/* in utils.c */
+int erts_vprint(fmtfn_t to, void *arg, char *format, va_list);	/* in utils.c */
 int erts_putc(fmtfn_t to, void *arg, char);			/* in utils.c */
 
 /* logger stuff is declared here instead of in global.h, so sys files
@@ -683,7 +684,8 @@ int erts_send_info_to_logger(Eterm, erts_dsprintf_buf_t *);
 int erts_send_warning_to_logger(Eterm, erts_dsprintf_buf_t *);
 int erts_send_error_to_logger(Eterm, erts_dsprintf_buf_t *);
 int erts_send_error_term_to_logger(Eterm, erts_dsprintf_buf_t *, Eterm);
-int erts_send_info_to_logger_str(Eterm, char *); 
+int erts_send_info_to_logger_str(Eterm, char *);
+int erts_send_warning_term_to_logger(Eterm, erts_dsprintf_buf_t *, Eterm);
 int erts_send_warning_to_logger_str(Eterm, char *);
 int erts_send_error_to_logger_str(Eterm, char *);
 int erts_send_info_to_logger_nogl(erts_dsprintf_buf_t *);
@@ -807,20 +809,20 @@ void sys_preload_end(Preload*);
 int sys_get_key(int);
 void get_time(int *hour, int *minute, int *second);
 void get_date(int *year, int *month, int *day);
-void get_localtime(int *year, int *month, int *day, 
+void get_localtime(int *year, int *month, int *day,
 		   int *hour, int *minute, int *second);
-void get_universaltime(int *year, int *month, int *day, 
+void get_universaltime(int *year, int *month, int *day,
 		       int *hour, int *minute, int *second);
-int seconds_to_univ(Sint64 seconds, 
-		    Sint *year, Sint *month, Sint *day, 
+int seconds_to_univ(Sint64 seconds,
+		    Sint *year, Sint *month, Sint *day,
 		    Sint *hour, Sint *minute, Sint *second);
-int univ_to_seconds(Sint year, Sint month, Sint day, 
+int univ_to_seconds(Sint year, Sint month, Sint day,
 		    Sint hour, Sint minute, Sint second,
 		    Sint64* seconds);
 int univ_to_local(
-    Sint *year, Sint *month, Sint *day, 
+    Sint *year, Sint *month, Sint *day,
 		  Sint *hour, Sint *minute, Sint *second);
-int local_to_univ(Sint *year, Sint *month, Sint *day, 
+int local_to_univ(Sint *year, Sint *month, Sint *day,
 		  Sint *hour, Sint *minute, Sint *second, int isdst);
 void get_now(Uint*, Uint*, Uint*);
 struct ErtsSchedulerData_;
@@ -1214,7 +1216,7 @@ ERTS_GLB_INLINE size_t sys_strlen(const char *s)
                             ((byte*)(s))[5] = (byte)((Sint64)(i) >> 16) & 0xff;\
                             ((byte*)(s))[6] = (byte)((Sint64)(i) >> 8)  & 0xff;\
                             ((byte*)(s))[7] = (byte)((Sint64)(i))       & 0xff;\
-                           } while (0) 
+                           } while (0)
 
 /* Returns a signed int */
 #define get_int32(s) ((((byte*) (s))[0] << 24) | \
@@ -1286,14 +1288,14 @@ void erl_bin_write(unsigned char *, int, int);
 #ifdef __WIN32__
 #ifdef ARCH_64
 #define ERTS_ALLOC_ALIGN_BYTES 16
-#define ERTS_SMALL_ABS(Small) _abs64(Small) 
+#define ERTS_SMALL_ABS(Small) _abs64(Small)
 #else
 #define ERTS_ALLOC_ALIGN_BYTES 8
-#define ERTS_SMALL_ABS(Small) labs(Small) 
+#define ERTS_SMALL_ABS(Small) labs(Small)
 #endif
 #else
 #define ERTS_ALLOC_ALIGN_BYTES 8
-#define ERTS_SMALL_ABS(Small) labs(Small) 
+#define ERTS_SMALL_ABS(Small) labs(Small)
 #endif
 
 #ifndef ERTS_HAVE_ERTS_SYS_ALIGNED_ALLOC
@@ -1307,8 +1309,8 @@ char* win32_errorstr(int);
 #endif
 
 /************************************************************************
- * Find out the native filename encoding of the process (look at locale of 
- * Unix processes and just do UTF16 on windows 
+ * Find out the native filename encoding of the process (look at locale of
+ * Unix processes and just do UTF16 on windows
  ************************************************************************/
 #define ERL_FILENAME_UNKNOWN   (0)
 #define ERL_FILENAME_LATIN1    (1)
@@ -1340,7 +1342,7 @@ int erts_get_native_filename_encoding(void);
 void erts_set_user_requested_filename_encoding(int encoding, int warning);
 int erts_get_user_requested_filename_encoding(void);
 int erts_get_filename_warning_type(void);
-/* This function is called from erl_init. The setting is read by BIF's 
+/* This function is called from erl_init. The setting is read by BIF's
    in io/io_lib. Setting is not atomic. */
 void erts_set_printable_characters(int range);
 /* Get the setting (ERL_PRINTABLE_CHARACTERS_{LATIN1|UNICODE} */

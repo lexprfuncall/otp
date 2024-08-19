@@ -55,6 +55,7 @@
 #include "beam_load.h"
 #include "erl_md5.h"
 #include "erl_iolist.h"
+#include "erl_hdump.h"
 
 #ifdef ERTS_ENABLE_LOCK_COUNT
 #include "erl_lock_count.h"
@@ -1081,7 +1082,7 @@ erts_process_info(Process *c_p,
                 ASSERT(sz);
                 ERTS_PI_UNRESERVE(reserve_size, sz);
                 hp = erts_produce_heap(hfact, sz, reserve_size);
-                extra = copy_struct(extra, sz, &hp, hfact->off_heap); 
+                extra = copy_struct(extra, sz, &hp, hfact->off_heap);
             }
         }
 	res = process_info_aux(c_p, hfact, rp, rp_locks, item_ix[0], extra,
@@ -1137,7 +1138,7 @@ erts_process_info(Process *c_p,
                 ASSERT(sz);
                 ERTS_PI_UNRESERVE(reserve_size, sz);
                 hp = erts_produce_heap(hfact, sz, reserve_size);
-                extra = copy_struct(extra, sz, &hp, hfact->off_heap); 
+                extra = copy_struct(extra, sz, &hp, hfact->off_heap);
             }
             val = process_info_aux(c_p, hfact, rp, rp_locks, ix, extra,
                                    &msgq_len, flags, &reserve_size, reds);
@@ -3521,6 +3522,12 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
         hp = hsz ? HAlloc(BIF_P, hsz) : NULL;
         res = erts_bld_sint64(&hp, NULL, (Sint64) erts_halt_flush_timeout);
         BIF_RET(res);
+    } else if (ERTS_IS_ATOM_STR("hdump_version", BIF_ARG_1)) {
+      hp = HAlloc(BIF_P, 3);
+      res = TUPLE2(hp,
+                   make_small(HDUMP_MODULE_VERSION),
+                   make_small(HDUMP_FORMAT_VERSION));
+      BIF_RET(res);
     }
 
     BIF_ERROR(BIF_P, BADARG);

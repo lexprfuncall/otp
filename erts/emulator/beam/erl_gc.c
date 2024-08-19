@@ -42,6 +42,7 @@
 #include "erl_proc_sig_queue.h"
 #include "beam_common.h"
 #include "beam_bp.h"
+#include "erl_hdump.h"
 
 #define ERTS_INACT_WR_PB_LEAVE_MUCH_LIMIT 1
 #define ERTS_INACT_WR_PB_LEAVE_MUCH_PERCENTAGE 20
@@ -815,6 +816,13 @@ do_major_collection:
 
         erts_set_self_exiting(p, am_killed);
 
+        if (erts_heap_dump_on_max_heap)
+            /*
+             * Start the process of a heap dump now, delaying the
+             * expensive parts until after process is dead.
+             */
+            erts_hdump_start(p, NULL, p->arg_reg, p->arity);
+
     delay_gc_after_start:
         /* erts_send_exit_signal looks for ERTS_PSFLG_GC, so
            we have to remove it after the signal is sent */
@@ -1185,6 +1193,12 @@ erts_garbage_collect_literals(Process* p, Eterm* literals,
             reached_max_heap_size(p, total_heap_size,
                                   new_heap_size, old_heap_size)) {
             erts_set_self_exiting(p, am_killed);
+            if (erts_heap_dump_on_max_heap)
+                /*
+                 * Start the process of a heap dump now, delaying the
+                 * expensive parts until after process is dead.
+                 */
+                erts_hdump_start(p, NULL, p->arg_reg, p->arity);
             return 0;
         }
     }
@@ -3764,6 +3778,7 @@ reached_max_heap_size(Process *p, Uint total_heap_size,
 
         erts_free(ERTS_ALC_T_TMP, o_hp);
     }
+
     /* returns true if we should kill the process */
     return max_heap_flags & MAX_HEAP_SIZE_KILL;
 }

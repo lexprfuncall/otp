@@ -44,6 +44,8 @@
 -export([request_system_task/3, request_system_task/4]).
 -export([garbage_collect/1]).
 
+-export([heap_dump/1]).
+
 -export([check_process_code/3]).
 -export([check_dirty_process_code/2]).
 -export([is_process_executing_dirty/1]).
@@ -272,7 +274,8 @@ port_info(_Result, _Item) ->
       Prio :: 'max' | 'high' | 'normal' | 'low' | 'inherit',
       Type :: 'major' | 'minor',
       Request :: {'garbage_collect', term(), Type}
-	       | {'check_process_code', term(), module()}
+	       | {'heap_dump', reference(), boolean()}
+               | {'check_process_code', term(), module()}
 	       | {'copy_literals', term(), boolean()},
       Pid :: pid().
 
@@ -293,6 +296,11 @@ request_system_task(_RequesterPid, _TargetPid, _Prio, _Request) ->
 -spec garbage_collect(Mode) -> 'true' when Mode :: 'major' | 'minor'.
 
 garbage_collect(_Mode) ->
+    erlang:nif_error(undefined).
+
+-spec heap_dump(Filename) -> boolean() when
+      Filename :: string().
+heap_dump(_Filename) ->
     erlang:nif_error(undefined).
 
 -spec check_process_code(Module) -> boolean() when

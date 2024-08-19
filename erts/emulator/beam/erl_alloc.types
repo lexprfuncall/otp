@@ -311,6 +311,8 @@ type    DSIG_HNDL_NTFY  SHORT_LIVED     PROCESSES       dirty_signal_handler_not
 type    SCHD_SIG_NTFY   SHORT_LIVED     PROCESSES       scheduled_signal_notify
 type	CODE_COVERAGE   STANDARD        SYSTEM          code_coverage
 
+type	HEAP_DUMP	STANDARD	SYSTEM		heap_dump
+
 #
 # Types used for special emulators
 #

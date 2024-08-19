@@ -53,6 +53,7 @@
 #include "erl_poll.h"
 #include "erl_proc_sig_queue.h"
 #include "beam_common.h"
+#include "erl_hdump.h"
 
 #define ERTS_CHECK_TIME_REDS CONTEXT_REDS
 #define ERTS_DELAYED_WAKEUP_INFINITY (~(Uint64) 0)
@@ -449,6 +450,7 @@ typedef enum {
     ERTS_PSTT_FTMQ,     /* Flush trace msg queue */
     ERTS_PSTT_ETS_FREE_FIXATION,
     ERTS_PSTT_PRIO_SIG,  /* Elevate prio on signal management */
+    ERTS_PSTT_HEAP_DUMP, /* Write a heap dump to disk */
     ERTS_PSTT_TEST
 } ErtsProcSysTaskType;
 
@@ -9457,6 +9459,32 @@ scheduler_gc_proc(Process *c_p, int reds_left)
     return reds;
 }
 
+static int
+scheduler_heap_dump_proc(Process *c_p, int *reds, Eterm filename)
+{
+    char *buf;
+    int encoding;
+    int res;
+
+    if (is_nil(filename))
+        buf = NULL;
+    else {
+        encoding = erts_get_native_filename_encoding();
+        if (encoding == ERL_FILENAME_WIN_WCHAR)
+            encoding = ERL_FILENAME_UTF8;
+        buf = erts_convert_filename_to_encoding(filename, NULL, 0,
+                                                ERTS_ALC_T_TMP, 1, 0, encoding,
+                                                NULL, 0);
+        if (buf == NULL)
+            return 1;
+    }
+    res = erts_hdump(c_p, buf, c_p->arg_reg, c_p->arity);
+    if (buf != NULL)
+        erts_free(ERTS_ALC_T_TMP, buf);
+    *reds -= CONTEXT_REDS;
+    return res;
+}
+
 static void
 unlock_lock_rq(int pre_free, void *vrq)
 {
@@ -10864,6 +10892,12 @@ execute_sys_tasks(Process *c_p, erts_aint32_t *statep, int in_reds)
 
             break;
         }
+        case ERTS_PSTT_HEAP_DUMP:
+            if (scheduler_heap_dump_proc(c_p, &reds, st->arg[0]) == 0)
+                st_res = am_true;
+            else
+                st_res = am_false;
+            break;
         case ERTS_PSTT_TEST:
             st_res = am_true;
             break;
@@ -11333,6 +11367,15 @@ request_system_task(Process *c_p, Eterm requester, Eterm target,
 	fail_state |= ERTS_PSFLG_DIRTY_RUNNING;
 	break;
 
+    case am_heap_dump:
+        if (c_p->common.id == requester)
+            signal = !0;
+        noproc_res = am_false;
+        st->type = ERTS_PSTT_HEAP_DUMP;
+        if (!rp)
+            goto noproc;
+        break;
+
     default:
         if (ERTS_IS_ATOM_STR("system_task_test", req_type)) {
             st->type = ERTS_PSTT_TEST;
@@ -11427,6 +11470,8 @@ sched_sig_sys_task(Process *c_p, void *vst, int *redsp, ErlHeapFragment **bp)
 	break;
     case am_check_process_code:
 	fail_state |= ERTS_PSFLG_DIRTY_RUNNING;
+	break;
+    case am_heap_dump:
 	break;
     default:
 	ERTS_INTERNAL_ERROR("system task not supported as signal");
@@ -12489,6 +12534,8 @@ erl_create_process(Process* parent, /* Parent of process (default group leader).
 
     p->sys_task_qs = NULL;
 
+    p->hdump = NULL;
+
     /* No need to initialize p->fcalls. */
 
     p->current = &p->u.initial;
@@ -13184,6 +13231,8 @@ void erts_init_empty_process(Process *p)
     erts_proc_lock_init(p);
     erts_proc_unlock(p, ERTS_PROC_LOCKS_ALL);
     erts_init_runq_proc(p, ERTS_RUNQ_IX(0), 0);
+
+    p->hdump = NULL;
 }
 
 #ifdef DEBUG
@@ -13235,6 +13284,8 @@ erts_debug_verify_clean_empty_process(Process* p)
     ASSERT(p->wrt_bins == NULL);
 
     ASSERT(p->mbuf == NULL);
+
+    ASSERT(p->hdump == NULL);
 }
 
 #endif
@@ -14604,6 +14655,12 @@ restart:
         break;
     }
     }
+
+    /*
+     * If there is a delayed heap dump pending, finish it.
+     */
+    if (p->flags & F_HDUMP_ON_EXIT)
+	erts_hdump_finish(p);
 
     /* block_rla_ref needed by delete_process() */
     p->u.terminate = (void *) (Uint) trap_state->block_rla_ref;

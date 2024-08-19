@@ -441,6 +441,7 @@ A list of binaries. This datatype is useful to use together with
 -export([group_leader/2]).
 -export([halt/0, halt/1, halt/2,
 	 has_prepared_code_on_load/1, hibernate/3]).
+-export([heap_dump/0, heap_dump/1, heap_dump/2]).
 -export([insert_element/3]).
 -export([integer_to_binary/1, integer_to_list/1]).
 -export([iolist_size/1, iolist_to_binary/1, iolist_to_iovec/1]).
@@ -3301,6 +3302,41 @@ halt(_, _) ->
       PreparedCode :: prepared_code().
 has_prepared_code_on_load(_PreparedCode) ->
     erlang:nif_error(undefined).
+
+%% heap_dump/0
+-spec heap_dump() -> boolean().
+heap_dump() ->
+    erts_internal:heap_dump([]).
+
+%% heap_dump/1
+-spec heap_dump(Pid) -> boolean() when
+      Pid :: pid().
+heap_dump(Pid) ->
+    heap_dump(Pid, []).
+
+%% heap_dump/2
+-spec heap_dump(Pid, File) -> boolean() when
+      Pid :: pid(),
+      File :: string().
+heap_dump(Pid, File) ->
+    try
+        case Pid == erlang:self() of
+            true ->
+                erts_internal:heap_dump(File);
+            false ->
+                ReqId = erlang:make_ref(),
+                Options = {heap_dump, ReqId, File},
+                erts_internal:request_system_task(Pid, inherit, Options),
+                receive
+                    {heap_dump, ReqId, Result} -> Result
+                end
+        end
+    catch
+        throw:bad_option ->
+            badarg_with_cause([Pid], bad_option);
+	error:_ ->
+            badarg_with_info([Pid])
+    end.
 
 %% hibernate/3
 -doc """

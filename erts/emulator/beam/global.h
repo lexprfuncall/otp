@@ -1254,6 +1254,9 @@ extern Uint erts_coverage_mode;
 extern int erts_jit_asm_dump;
 #endif
 
+extern int erts_heap_dump_format;
+extern int erts_heap_dump_on_max_heap;
+
 void erl_start(int, char**);
 void erts_usage(void);
 Eterm erts_preloaded(Process* p);

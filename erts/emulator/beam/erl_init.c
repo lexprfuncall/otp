@@ -145,6 +145,10 @@ Uint erts_coverage_mode = ERTS_COV_NONE; /* -JPcover: Enable coverage */
 int erts_jit_asm_dump = 0;	/* -JDdump: Dump assembly code */
 #endif
 
+int erts_heap_dump_format = 1; /* -heap_dump_format: 0 = text 1 = binary */
+
+int erts_heap_dump_on_max_heap = 0; /* -heap_dump_on_max_heap: write a heap dump when process has reached the max heap size */
+
 /*
  * Other global variables.
  */
@@ -587,6 +591,12 @@ void erts_usage(void)
     erts_fprintf(stderr, "               valid values are: off_heap | on_heap\n");
     erts_fprintf(stderr, "\n");
 
+    erts_fprintf(stderr, "-heap_dump_on_max_heap   write a heap dump when a process is out of memory\n");
+    erts_fprintf(stderr, "-heap_dump_format val   set the default encoding format for a heap dump\n");
+    erts_fprintf(stderr, "                        valid values are: text | binary\n");
+    erts_fprintf(stderr, "-heap_dump_on_max_heap  write a heap dump when a process is out of memory\n");
+    erts_fprintf(stderr, "\n");
+
     erts_fprintf(stderr, "-IOp number    set number of pollsets to be used to poll for I/O\n");
     erts_fprintf(stderr, "               (this value must be equal or smaller than the\n");
     erts_fprintf(stderr, "               number of poll threads; ignored if the current platform\n");
@@ -905,7 +915,24 @@ early_init(int *argc, char **argv) /*
 		    }
 		    break;
 		}
-		case 'r': {
+		case 'h': {
+		    char *sub_param = argv[i] + 1;
+                    if (has_prefix("heap_dump_format", sub_param)) {
+			char *arg = get_arg(sub_param+16, argv[i+1], &i);
+			if (sys_strcmp(arg, "text") == 0)
+			    erts_heap_dump_format = 0;
+			else if (sys_strcmp(arg, "binary") == 0)
+			    erts_heap_dump_format = 1;
+			else {
+			    erts_fprintf(stderr, "bad heap dump format: %s\n", arg);
+			    erts_usage();
+			}
+		    }
+		    else if (has_prefix("heap_dump_on_max_heap", sub_param))
+			erts_heap_dump_on_max_heap = 1;
+		    break;
+		}
+                case 'r': {
 		    char *sub_param = argv[i]+2;
 		    if (has_prefix("g", sub_param)) {
 			char *arg = get_arg(sub_param+1, argv[i+1], &i);
@@ -1625,6 +1652,11 @@ erl_start(int argc, char **argv)
 		}
 		H_MAX_SIZE = hMaxSize;
 		VERBOSE(DEBUG_SYSTEM, ("using max heap size %d\n", H_MAX_SIZE));
+	    } else if (has_prefix("heap_dump_on_max_heap", argv[i]+1)) {
+		/* these were handled in early init, skip over them */
+	    } else if (has_prefix("heap_dump_format", argv[i]+1)) {
+		/* also handled in early init, skip over it */
+		(void) get_arg(argv[i]+17, argv[i+1], &i);
 	    } else {
 	        /* backward compatibility */
 		arg = get_arg(argv[i]+2, argv[i+1], &i);

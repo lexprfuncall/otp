@@ -147,6 +147,7 @@ static char *pluss_val_switches[] = {
 };
 /* +h arguments with values */
 static char *plush_val_switches[] = {
+    "eap_dump_format",
     "ms",
     "mbs",
     "pds",

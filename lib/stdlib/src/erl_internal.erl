@@ -331,6 +331,7 @@ bif(group_leader, 2) -> true;
 bif(halt, 0) -> true;
 bif(halt, 1) -> true;
 bif(halt, 2) -> true;
+bif(heap_dump, 1) -> true;
 bif(hd, 1) -> true;
 bif(integer_to_binary, 1) -> true;
 bif(integer_to_binary, 2) -> true;

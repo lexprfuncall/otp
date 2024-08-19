@@ -405,9 +405,19 @@ int erts_fit_in_bits_uint(Uint value)
 int
 erts_print(fmtfn_t to, void *arg, char *format, ...)
 {
+    va_list ap;
+    int n;
+
+    va_start(ap, format);
+    n = erts_vprint(to, arg, format, ap);
+    va_end(ap);
+    return n;
+}
+
+int
+erts_vprint(fmtfn_t to, void *arg, char *format, va_list arg_list)
+{
     int res;
-    va_list arg_list;
-    va_start(arg_list, format);
 
     {
 	switch ((UWord)to) {
@@ -441,7 +451,6 @@ erts_print(fmtfn_t to, void *arg, char *format, ...)
 	}
     }
 
-    va_end(arg_list);
     return res;
 }
 
@@ -930,6 +939,12 @@ send_error_term_to_logger(Eterm gleader, char *buf, size_t len, Eterm args)
     return do_send_term_to_logger(am_error, gleader, buf, len, args);
 }
 
+static ERTS_INLINE int
+send_warning_term_to_logger(Eterm gleader, char *buf, size_t len, Eterm args)
+{
+    return do_send_term_to_logger(am_warning, gleader, buf, len, args);
+}
+
 #define LOGGER_DSBUF_INC_SZ 256
 
 static erts_dsprintf_buf_t *
@@ -1009,6 +1024,15 @@ erts_send_error_term_to_logger(Eterm gleader, erts_dsprintf_buf_t *dsbufp, Eterm
 {
     int res;
     res = send_error_term_to_logger(gleader, dsbufp->str, dsbufp->str_len, args);
+    destroy_logger_dsbuf(dsbufp);
+    return res;
+}
+
+int
+erts_send_warning_term_to_logger(Eterm gleader, erts_dsprintf_buf_t *dsbufp, Eterm args)
+{
+    int res;
+    res = send_warning_term_to_logger(gleader, dsbufp->str, dsbufp->str_len, args);
     destroy_logger_dsbuf(dsbufp);
     return res;
 }
@@ -2371,7 +2395,7 @@ exact_fall_through:
 	}
     }
     if (j == 0) {
-	goto pop_next; 
+	goto pop_next;
     } else {
 	goto not_equal;
     }
@@ -2725,7 +2749,7 @@ void bin_write(fmtfn_t to, void *to_arg, byte* buf, size_t sz)
     erts_putc(to, to_arg, '\n');
 }
 
-/* Fill buf with the contents of bytelist list 
+/* Fill buf with the contents of bytelist list
  * return number of chars in list
  * or -1 for type error
  * or -2 for not enough buffer space (buffer contains truncated result)
@@ -3000,7 +3024,7 @@ void erts_utils_sched_spec_data_init(void)
 #endif
 }
 
-void erts_init_utils_mem(void) 
+void erts_init_utils_mem(void)
 {
     trim_threshold = -1;
     top_pad = -1;
@@ -3136,7 +3160,7 @@ erts_save_emu_args(int argc, char **argv)
 	if (i < sizeof(arg_sz)/sizeof(arg_sz[0]))
 	    arg_sz[i] = sz;
 	size += sz+1;
-    } 
+    }
     ptr = (char *) malloc(size);
     if (!ptr) {
         ERTS_INTERNAL_ERROR("malloc failed to allocate memory!");
